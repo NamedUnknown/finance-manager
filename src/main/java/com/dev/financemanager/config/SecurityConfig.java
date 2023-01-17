@@ -1,14 +1,14 @@
 package com.dev.financemanager.config;
 
-import com.dev.financemanager.filter.EmailPasswordAuthenticationFilter;
-import com.dev.financemanager.filter.CsrfCookieFilter;
-import com.dev.financemanager.filter.JwtValidationFilter;
+import com.dev.financemanager.filter.*;
 import com.dev.financemanager.service.users.AppUsersService;
 import com.dev.financemanager.utils.Base64TokenUtils;
 import com.dev.financemanager.utils.JwtTokenUtils;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,9 +17,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
-import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.Collections;
@@ -40,14 +37,17 @@ public class SecurityConfig {
         EmailPasswordAuthenticationFilter emailPasswordFilter = emailPasswordAuthenticationFilter(http);
 
         // https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#_i_am_using_angularjs_or_another_javascript_framework
-        CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-        XorCsrfTokenRequestAttributeHandler delegate = new XorCsrfTokenRequestAttributeHandler();
+        //CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        //XorCsrfTokenRequestAttributeHandler delegate = new XorCsrfTokenRequestAttributeHandler();
         // set the name of the attribute the CsrfToken will be populated on
-        delegate.setCsrfRequestAttributeName("_csrf");
+        //delegate.setCsrfRequestAttributeName("_csrf");
         // Use only the handle() method of XorCsrfTokenRequestAttributeHandler and the
         // default implementation of resolveCsrfTokenValue() from CsrfTokenRequestHandler
-        CsrfTokenRequestHandler requestHandler = delegate::handle;
+        //CsrfTokenRequestHandler requestHandler = delegate::handle;
 
+        // Session has to be saved in some way
+        // Database table called [sessions] -> Session ID, Session token
+        // Store tokens in: cookies or local storage
         return http
                 .securityContext().requireExplicitSave(false)
                 .and()
@@ -57,27 +57,32 @@ public class SecurityConfig {
                                 .requestMatchers("/admin/**").hasRole("ADMIN")
                                 .requestMatchers("/auth/register", "/auth/login").permitAll()
                                 .requestMatchers("/auth").hasRole("USER")
-                                .requestMatchers("/finances").hasRole("USER")
-                                // Actuator
-                                .requestMatchers("/actuator/**").permitAll()
+                                .requestMatchers("/finances", "/savings").hasRole("USER")
                 .and()
                 .cors().configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
-                    config.setAllowedMethods(Collections.singletonList("*"));
+                    config.setAllowedMethods(List.of(
+                            HttpMethod.GET.name(),
+                            HttpMethod.POST.name(),
+                            HttpMethod.PUT.name(),
+                            HttpMethod.DELETE.name(),
+                            // For preflight requests
+                            HttpMethod.OPTIONS.name()
+                    ));
                     config.setAllowCredentials(true);
                     config.setAllowedHeaders(Collections.singletonList("*"));
-                    config.setExposedHeaders(List.of("Authorization"));
+                    config.setExposedHeaders(List.of(
+                            HttpHeaders.AUTHORIZATION,
+                            HttpHeaders.ACCEPT,
+                            HttpHeaders.CONTENT_TYPE
+                    ));
                     config.setMaxAge(3600L);
                     return config;
                 })
                 .and()
-                .csrf( csrf -> csrf
-                        .csrfTokenRepository(tokenRepository)
-                        .csrfTokenRequestHandler(requestHandler)
-                        .ignoringRequestMatchers("/auth/register", "/auth/login"))
+                .csrf().disable()
                 .addFilterBefore(emailPasswordFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(new CsrfCookieFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(jwtValidationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

@@ -1,6 +1,8 @@
 package com.dev.financemanager.service.savings;
 
 import com.dev.financemanager.dao.SavingsRepository;
+import com.dev.financemanager.entity.AppUser;
+import com.dev.financemanager.entity.Finance;
 import com.dev.financemanager.entity.Savings;
 import org.springframework.stereotype.Service;
 
@@ -28,5 +30,10 @@ public class SavingsServiceImpl implements SavingsService {
     @Override
     public void delete(Savings savings) {
         savingsRepository.delete(savings);
+    }
+
+    @Override
+    public List<Savings> findAllByUser(AppUser user) {
+        return savingsRepository.findAllByUser(user);
     }
 }

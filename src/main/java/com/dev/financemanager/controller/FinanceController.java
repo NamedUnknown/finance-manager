@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @AllArgsConstructor
 @RestController
@@ -21,11 +22,10 @@ import java.util.List;
 public class FinanceController {
 
     private final FinanceService financeService;
-
     private final AppUsersService usersService;
 
     @GetMapping
-    public List<Finance> getAllByEmail() {
+    public List<Finance> getAll() {
         AppUser user = getUserFromSecurityContext();
         List<Finance> finances = financeService.findAllByUser(user);
         if (finances == null || finances.isEmpty()) return new ArrayList<>();
@@ -63,8 +63,26 @@ public class FinanceController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Object> deleteFinance(@RequestBody Finance finance) {
+    public ResponseEntity<Object> deleteFinance(@RequestBody Long id) {
         try {
+            Optional<Finance> optionalFinance = financeService.findById(id);
+            if (optionalFinance.isEmpty()) {
+                return new ResponseEntity<>(
+                        new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Record could not be found in database."),
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            Finance finance = optionalFinance.get();
+            String financeEmail = finance.getUser().getEmail();
+            String authEmail = getUserFromSecurityContext().getEmail();
+            if(!authEmail.equals(financeEmail)) {
+                return new ResponseEntity<>(
+                        new ErrorResponse(HttpStatus.FORBIDDEN.value(), "Action forbidden"),
+                        HttpStatus.FORBIDDEN
+                );
+            }
+
             finance.setUser(null);
             financeService.delete(finance);
             return new ResponseEntity<>(
@@ -85,13 +103,14 @@ public class FinanceController {
             AppUser user = getUserFromSecurityContext();
             finance.setId(0L);
             finance.setUser(user);
+            Finance savedFinance =  financeService.save(finance);
             return new ResponseEntity<>(
-                    new SuccessfulResponse<>(HttpStatus.OK.value(), "Record deleted", null),
+                    new SuccessfulResponse<>(HttpStatus.OK.value(), "Record added", savedFinance),
                     HttpStatus.OK
             );
         } catch (Exception e) {
             return new ResponseEntity<>(
-                    new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Record could not be deleted." + e.getMessage()),
+                    new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Record could not be added." + e.getMessage()),
                     HttpStatus.BAD_REQUEST
             );
         }

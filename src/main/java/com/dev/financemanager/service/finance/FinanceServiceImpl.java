@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -18,6 +19,11 @@ public class FinanceServiceImpl implements FinanceService {
     @Override
     public List<Finance> findAll() {
         return financeRepository.findAll();
+    }
+
+    @Override
+    public Optional<Finance> findById(Long id) {
+        return financeRepository.findById(id);
     }
 
     @Override
