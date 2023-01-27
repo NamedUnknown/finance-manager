@@ -74,3 +74,14 @@ UPDATE `finance`
 SET `spent_at` = NOW()
 WHERE `id` = 2;
 
+CREATE TABLE `contact` (
+   `id` INT NOT NULL AUTO_INCREMENT,
+   `title` VARCHAR(100) NOT NULL,
+   `content` VARCHAR(500) DEFAULT "",
+   `email` VARCHAR(50) NOT NULL,
+   `answer` VARCHAR(500) DEFAULT NULL,
+   `created` DATETIME NOT NULL,
+   `updated` DATETIME DEFAULT NULL,
+   PRIMARY KEY(`id`)
+);
+

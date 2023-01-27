@@ -5,11 +5,10 @@ import com.dev.financemanager.dto.response.SuccessfulResponse;
 import com.dev.financemanager.entity.AppUser;
 import com.dev.financemanager.entity.Finance;
 import com.dev.financemanager.service.finance.FinanceService;
-import com.dev.financemanager.service.users.AppUsersService;
+import com.dev.financemanager.utils.AuthUtils;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -22,11 +21,11 @@ import java.util.Optional;
 public class FinanceController {
 
     private final FinanceService financeService;
-    private final AppUsersService usersService;
+    private final AuthUtils authUtils;
 
     @GetMapping
     public List<Finance> getAll() {
-        AppUser user = getUserFromSecurityContext();
+        AppUser user = authUtils.getUserFromSecurityContext();
         List<Finance> finances = financeService.findAllByUser(user);
         if (finances == null || finances.isEmpty()) return new ArrayList<>();
         return finances;
@@ -34,7 +33,7 @@ public class FinanceController {
 
     @PutMapping
     public ResponseEntity<Object> updateFinance(@RequestBody Finance finance) {
-        AppUser user = getUserFromSecurityContext();
+        AppUser user = authUtils.getUserFromSecurityContext();
         if (user == null) {
             return new ResponseEntity<>(
                     new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "User could not be found"),
@@ -75,7 +74,7 @@ public class FinanceController {
 
             Finance finance = optionalFinance.get();
             String financeEmail = finance.getUser().getEmail();
-            String authEmail = getUserFromSecurityContext().getEmail();
+            String authEmail = authUtils.getUserFromSecurityContext().getEmail();
             if(!authEmail.equals(financeEmail)) {
                 return new ResponseEntity<>(
                         new ErrorResponse(HttpStatus.FORBIDDEN.value(), "Action forbidden"),
@@ -100,7 +99,7 @@ public class FinanceController {
     @PostMapping
     public ResponseEntity<Object> addFinance(@RequestBody Finance finance) {
         try {
-            AppUser user = getUserFromSecurityContext();
+            AppUser user = authUtils.getUserFromSecurityContext();
             finance.setId(0L);
             finance.setUser(user);
             Finance savedFinance =  financeService.save(finance);
@@ -114,13 +113,5 @@ public class FinanceController {
                     HttpStatus.BAD_REQUEST
             );
         }
-    }
-
-    private AppUser getUserFromSecurityContext() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        if (email == null) {
-            throw new RuntimeException("No user authenticated");
-        }
-        return usersService.findByEmail(email);
     }
 }

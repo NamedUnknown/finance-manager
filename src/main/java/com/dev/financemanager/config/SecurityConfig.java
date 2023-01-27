@@ -5,6 +5,7 @@ import com.dev.financemanager.service.users.AppUsersService;
 import com.dev.financemanager.utils.Base64TokenUtils;
 import com.dev.financemanager.utils.JwtTokenUtils;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +15,9 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -57,7 +61,7 @@ public class SecurityConfig {
                                 .requestMatchers("/admin/**").hasRole("ADMIN")
                                 .requestMatchers("/auth/register", "/auth/login").permitAll()
                                 .requestMatchers("/auth").hasRole("USER")
-                                .requestMatchers("/finances", "/savings").hasRole("USER")
+                                .requestMatchers("/finances", "/savings", "/contact/**").hasRole("USER")
                 .and()
                 .cors().configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
